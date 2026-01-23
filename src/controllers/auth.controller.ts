@@ -22,7 +22,10 @@ export const register = async (req: Request, res: Response) => {
     await user.save();
 
     // Generate token
-    const jwtSecret = process.env.JWT_SECRET || 'default-secret';
+    const jwtSecret = process.env.JWT_SECRET;
+    if (!jwtSecret) {
+      return res.status(500).json({ error: 'Server configuration error' });
+    }
     const expiresIn = process.env.JWT_EXPIRES_IN || '7d';
     const token = jwt.sign({ userId: user._id.toString() }, jwtSecret, { expiresIn } as any);
 
@@ -62,7 +65,10 @@ export const login = async (req: Request, res: Response) => {
     }
 
     // Generate token
-    const jwtSecret = process.env.JWT_SECRET || 'default-secret';
+    const jwtSecret = process.env.JWT_SECRET;
+    if (!jwtSecret) {
+      return res.status(500).json({ error: 'Server configuration error' });
+    }
     const expiresIn = process.env.JWT_EXPIRES_IN || '7d';
     const token = jwt.sign({ userId: user._id.toString() }, jwtSecret, { expiresIn } as any);
 

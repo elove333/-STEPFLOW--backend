@@ -1,5 +1,6 @@
 import { IAIFeedback } from '../types';
 
+// Note: This service requires Node.js 18+ for native fetch API
 export const getAIFeedback = async (
   sessionId: string,
   sessionData: any
@@ -13,8 +14,13 @@ export const getAIFeedback = async (
       return generateBasicFeedback(sessionId, sessionData);
     }
 
+    // Check if fetch is available (Node.js 18+)
+    if (typeof fetch === 'undefined') {
+      console.warn('Fetch API not available. Please use Node.js 18 or higher, or install node-fetch.');
+      return generateBasicFeedback(sessionId, sessionData);
+    }
+
     // In production, this would make an HTTP request to the AI service
-    // For now, we'll generate basic feedback
     const response = await fetch(`${aiServiceUrl}/analyze`, {
       method: 'POST',
       headers: {
