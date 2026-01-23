@@ -1,5 +1,6 @@
 const express = require('express');
 const cors = require('cors');
+const { apiLimiter } = require('./middleware/rateLimiter');
 const folderRoutes = require('./routes/folderRoutes');
 
 const app = express();
@@ -8,6 +9,9 @@ const app = express();
 app.use(cors());
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
+
+// Apply rate limiting to all API routes
+app.use('/api/', apiLimiter);
 
 // Routes
 app.use('/api/folders', folderRoutes);

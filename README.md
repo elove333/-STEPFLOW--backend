@@ -9,6 +9,9 @@ Backend API for STEPFLOW, handling authentication, session ingestion, analytics,
 - MongoDB for data persistence
 - Input validation and error handling
 - Hierarchical folder structure support
+- **Rate Limiting**: Protection against API abuse
+  - General API: 100 requests per 15 minutes
+  - Write operations: 20 requests per 15 minutes
 
 ## Prerequisites
 
@@ -249,6 +252,7 @@ The API returns standard HTTP status codes:
 - `400` - Bad Request (validation errors)
 - `403` - Forbidden
 - `404` - Not Found
+- `429` - Too Many Requests (rate limit exceeded)
 - `500` - Internal Server Error
 
 Error responses follow this format:
@@ -258,6 +262,14 @@ Error responses follow this format:
   "error": "Error message"
 }
 ```
+
+### Rate Limiting
+
+To prevent API abuse, rate limiting is applied:
+- **General API routes**: 100 requests per 15 minutes per IP
+- **Write operations** (POST, PUT, DELETE): 20 requests per 15 minutes per IP
+
+When rate limit is exceeded, the API returns a 429 status with retry information in the response headers.
 
 ## Features in Detail
 
