@@ -194,15 +194,27 @@ DELETE /api/folders/:id
 
 ## Testing
 
-Run tests:
+Run basic API tests (no database required):
 ```bash
 npm test
+```
+
+Run full integration tests with MongoDB (requires MongoDB connection):
+```bash
+npm run test:integration
 ```
 
 Run tests in watch mode:
 ```bash
 npm run test:watch
 ```
+
+**Note:** The full integration tests require a MongoDB instance. For local development with MongoDB:
+1. Install and run MongoDB locally, OR
+2. Use MongoDB Atlas or another cloud MongoDB service, OR
+3. Tests will automatically use an in-memory MongoDB server if available
+
+The basic tests (`npm test`) verify API endpoints and response formats without requiring a database.
 
 ## Project Structure
 

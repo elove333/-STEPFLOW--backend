@@ -1,18 +1,21 @@
 const request = require('supertest');
 const mongoose = require('mongoose');
+const { MongoMemoryServer } = require('mongodb-memory-server');
 const app = require('../src/app');
 const Folder = require('../src/models/Folder');
 
-// Test database connection
-const TEST_MONGODB_URI = process.env.TEST_MONGODB_URI || 'mongodb://localhost:27017/stepflow_test';
+let mongoServer;
 
 beforeAll(async () => {
-  await mongoose.connect(TEST_MONGODB_URI);
+  mongoServer = await MongoMemoryServer.create();
+  const mongoUri = mongoServer.getUri();
+  await mongoose.connect(mongoUri);
 });
 
 afterAll(async () => {
   await mongoose.connection.dropDatabase();
   await mongoose.connection.close();
+  await mongoServer.stop();
 });
 
 beforeEach(async () => {
