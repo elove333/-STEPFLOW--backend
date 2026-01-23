@@ -5,14 +5,15 @@ import {
   getStats,
 } from '../controllers/analytics.controller';
 import { authMiddleware } from '../middleware/auth.middleware';
+import { apiLimiter } from '../middleware/rateLimiter.middleware';
 
 const router = Router();
 
 // All analytics routes require authentication
 router.use(authMiddleware);
 
-router.get('/', getAnalytics);
-router.get('/progress', getProgress);
-router.get('/stats', getStats);
+router.get('/', apiLimiter, getAnalytics);
+router.get('/progress', apiLimiter, getProgress);
+router.get('/stats', apiLimiter, getStats);
 
 export default router;
