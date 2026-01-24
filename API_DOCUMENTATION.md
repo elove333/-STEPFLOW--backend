@@ -25,7 +25,7 @@ Create a new user account.
 {
   "email": "user@example.com",
   "password": "password123",
-  "name": "John Doe" // optional
+  "name": "John Doe" //
 }
 ```
 
