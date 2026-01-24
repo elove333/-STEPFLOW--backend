@@ -133,7 +133,7 @@ Authorization: Bearer <token>
 ```json
 {
   "message": "Session created successfully",
-  "session":.
+  "session":
     "id": "session_id",
     "userId": "user_id",
     "startTime": "2024-01-23T10:00:00.000Z",
@@ -143,7 +143,14 @@ Authorization: Bearer <token>
     "distance": 3500,
     "avgPace": 5.14,
     "calories": 200,
-    "movementData": [...],
+    "movementData": 'export const           
+    ScreenMeta = {
+  Home: { title: "STEPFLOW Home" },
+  Session: { title: "Movement Session" },
+  Results: { title: "Results" },
+  Settings: { title: "Settings" }
+};
+],
     "metadata": {...},
     "createdAt": "2024-01-23T10:30:05.000Z"
   }
