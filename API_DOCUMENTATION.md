@@ -133,7 +133,7 @@ Authorization: Bearer <token>
 ```json
 {
   "message": "Session created successfully",
-  "session": {
+  "session":.
     "id": "session_id",
     "userId": "user_id",
     "startTime": "2024-01-23T10:00:00.000Z",
