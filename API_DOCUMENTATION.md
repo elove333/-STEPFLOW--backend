@@ -150,6 +150,7 @@ Authorization: Bearer <token>
 }
 ```
 
+> Note: `avgCadence` and `avgSpeed` are computed metrics (e.g. by the backend's `processMetrics` logic). They may be included in the `session` object returned by this API, but they are **not** persisted in the `Session` database schema.
 ### Get Sessions
 **GET** `/api/sessions`
 
