@@ -13,7 +13,7 @@ Backend API for STEPFLOW, handling authentication, session ingestion, analytics,
 
 ## Tech Stack
 
-- **Runtime**: Node.js with TypeScript
+- **Runtime**: Node.js >= 20.19.0 with TypeScript
 - **Framework**: Express.js
 - **Database**: MongoDB with Mongoose ODM
 - **Authentication**: JWT (jsonwebtoken) + bcrypt
