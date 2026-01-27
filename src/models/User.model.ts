@@ -14,11 +14,12 @@ const UserSchema: Schema = new Schema(
       unique: true,
       lowercase: true,
       trim: true,
+      match: [/^\S+@\S+\.\S+$/, 'Please provide a valid email address'],
     },
     password: {
       type: String,
       required: true,
-      minlength: 6,
+      minlength: [6, 'Password must be at least 6 characters long'],
     },
     name: {
       type: String,
@@ -31,7 +32,7 @@ const UserSchema: Schema = new Schema(
 );
 
 // Hash password before saving
-UserSchema.pre('save', async function () {
+UserSchema.pre('save', async function (this: IUserDocument) {
   if (!this.isModified('password')) {
     return;
   }

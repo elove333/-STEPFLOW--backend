@@ -1,5 +1,10 @@
 import rateLimit from 'express-rate-limit';
 
+// NOTE: Rate limiters use in-memory storage by default.
+// For production with multiple instances or auto-scaling, consider using
+// a shared store like Redis with express-rate-limit's store option.
+// Also configure trustProxy in Express if behind a reverse proxy.
+
 // General API rate limiter
 export const apiLimiter = rateLimit({
   windowMs: 15 * 60 * 1000, // 15 minutes
@@ -16,7 +21,7 @@ export const authLimiter = rateLimit({
   message: 'Too many authentication attempts, please try again later.',
   standardHeaders: true,
   legacyHeaders: false,
-  skipSuccessfulRequests: false,
+  skipSuccessfulRequests: true, // Only count failed attempts for brute force protection
 });
 
 // Rate limiter for session creation

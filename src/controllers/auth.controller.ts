@@ -1,168 +1,101 @@
-// src/controllers/analytics.ts
+import { Request, Response } from 'express';
+import jwt from 'jsonwebtoken';
+import User from '../models/User.model';
+import { AuthRequest } from '../middleware/auth.middleware';
 
-import { Request, Response, NextFunction } from "express";
-
-// Fundamental data structure for an analytics event
-interface AnalyticsEvent {
-  id: string;
-  type: "page_view" | "click" | "custom";
-  userId?: string;
-  path?: string;
-  label?: string;
-  value?: number;
-  timestamp: number;
-}
-
-// In‑memory “database” for analytics events
-const analyticsEvents: AnalyticsEvent[] = [];
-
-/**
- * GET /analytics/events
- * Return all analytics events (simple read controller).
- */
-export const getAnalyticsEvents = (
-  req: Request,
-  res: Response,
-  next: NextFunction
-): void => {
+export const register = async (req: Request, res: Response) => {
   try {
-    res.status(200).json(analyticsEvents);
-  } catch (error) {
-    next(error);
-  }
-};
+    const { email, password, name } = req.body;
 
-/**
- * POST /analytics/events
- * Track a new analytics event (create controller).
- */
-export const trackAnalyticsEvent = (
-  req: Request,
-  res: Response,
-  next: NextFunction
-): void => {
-  try {
-    const {
-      type,
-      userId,
-      path,
-      label,
-      value,
-    }: {
-      type: AnalyticsEvent["type"];
-      userId?: string;
-      path?: string;
-      label?: string;
-      value?: number;
-    } = req.body;
-
-    if (!type) {
-      res.status(400).json({ error: "type is required" });
-      return;
+    // Validate input
+    if (!email || !password) {
+      return res.status(400).json({ error: 'Email and password are required' });
     }
 
-    const event: AnalyticsEvent = {
-      id: crypto.randomUUID(),
-      type,
-      userId,
-      path,
-      label,
-      value,
-      timestamp: Date.now(),
-    };
-
-    analyticsEvents.push(event);
-
-    res.status(201).json(event);
-  } catch (error) {
-    next(error);
-  }
-};
-
-/**
- * GET /analytics/summary
- * Simple summary: count events by type.
- */
-export const getAnalyticsSummary = (
-  req: Request,
-  res: Response,
-  next: NextFunction
-): void => {
-  try {
-    const summary: Record<string, number> = {};
-
-    for (const event of analyticsEvents) {
-      const key = event.type;
-      summary[key] = (summary[key] ?? 0) + 1;
+    // Check if user already exists
+    const existingUser = await User.findOne({ email });
+    if (existingUser) {
+      return res.status(409).json({ error: 'User already exists' });
     }
 
-    res.status(200).json(summary);
-  } catch (error) {
-    next(error);
+    // Create new user
+    const user = new User({ email, password, name });
+    await user.save();
+
+    // Generate token
+    const jwtSecret = process.env.JWT_SECRET;
+    if (!jwtSecret) {
+      return res.status(500).json({ error: 'Server configuration error' });
+    }
+    const expiresIn = process.env.JWT_EXPIRES_IN || '7d';
+    const token = jwt.sign({ userId: user._id.toString() }, jwtSecret, { expiresIn } as any);
+
+    res.status(201).json({
+      message: 'User registered successfully',
+      token,
+      user: {
+        id: user._id,
+        email: user.email,
+        name: user.name,
+      },
+    });
+  } catch (error: any) {
+    res.status(500).json({ error: error.message });
   }
 };
-src/routes/analytics.ts
-// src/routes/analytics.ts
 
-import { Router } from "express";
-import {
-  getAnalyticsEvents,
-  trackAnalyticsEvent,
-  getAnalyticsSummary,
-} from "../controllers/analytics";
+export const login = async (req: Request, res: Response) => {
+  try {
+    const { email, password } = req.body;
 
-const router = Router();
+    // Validate input
+    if (!email || !password) {
+      return res.status(400).json({ error: 'Email and password are required' });
+    }
 
-router.get("/events", getAnalyticsEvents);
-router.post("/events", trackAnalyticsEvent);
-router.get("/summary", getAnalyticsSummary);
+    // Find user
+    const user = await User.findOne({ email });
+    if (!user) {
+      return res.status(401).json({ error: 'Invalid credentials' });
+    }
 
-export default router;
-src/app.ts
-// src/app.ts
+    // Verify password
+    const isValidPassword = await user.comparePassword(password);
+    if (!isValidPassword) {
+      return res.status(401).json({ error: 'Invalid credentials' });
+    }
 
-import express from "express";
-import analyticsRouter from "./routes/analytics";
+    // Generate token
+    const jwtSecret = process.env.JWT_SECRET;
+    if (!jwtSecret) {
+      return res.status(500).json({ error: 'Server configuration error' });
+    }
+    const expiresIn = process.env.JWT_EXPIRES_IN || '7d';
+    const token = jwt.sign({ userId: user._id.toString() }, jwtSecret, { expiresIn } as any);
 
-const app = express();
+    res.status(200).json({
+      message: 'Login successful',
+      token,
+      user: {
+        id: user._id,
+        email: user.email,
+        name: user.name,
+      },
+    });
+  } catch (error: any) {
+    res.status(500).json({ error: error.message });
+  }
+};
 
-app.use(express.json());
+export const getProfile = async (req: AuthRequest, res: Response) => {
+  try {
+    const user = await User.findById(req.userId).select('-password');
+    if (!user) {
+      return res.status(404).json({ error: 'User not found' });
+    }
 
-// Mount analytics routes under /analytics
-app.use("/analytics", analyticsRouter);
-
-export default app;
-src/server.ts
-// src/server.ts
-
-import app from "./app";
-
-const PORT = process.env.PORT || 4000;
-
-app.listen(PORT, () => {
-  console.log
-(`Server listening on port ${PORT}`);
-});src/
-  features/
-    analytics/
-      analytics.controller.ts
-      analytics.route.ts
-      analytics.service.ts
-      analytics.model.ts
-      index.ts
-    auth/
-      auth.controller.ts
-      auth.route.ts
-      auth.service.ts
-      auth.model.ts
-    users/
-      user.controller.ts
-      user.route.ts
-      user.service.ts
-      user.model.ts
-  config/
-  middleware/
-  utils/
-  app.ts
-  server.ts
-
+    res.status(200).json({ user });
+  } catch (error: any) {
+    res.status(500).json({ error: error.message });
+  }
+};

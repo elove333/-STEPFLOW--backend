@@ -1,5 +1,5 @@
 import mongoose, { Schema, Document } from 'mongoose';
-import { ISession, IMovementData } from '../types';
+import { ISession } from '../types';
 
 export interface ISessionDocument extends ISession, Document {}
 

@@ -20,25 +20,46 @@ export const getAIFeedback = async (
       return generateBasicFeedback(sessionId, sessionData);
     }
 
-    // In production, this would make an HTTP request to the AI service
-    const response = await fetch(`${aiServiceUrl}/analyze`, {
-      method: 'POST',
-      headers: {
+    // Create abort controller for timeout
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 30000); // 30 second timeout
+
+    try {
+      const headers: Record<string, string> = {
         'Content-Type': 'application/json',
-        'Authorization': `Bearer ${apiKey}`,
-      },
-      body: JSON.stringify({
-        sessionId,
-        data: sessionData,
-      }),
-    });
+      };
 
-    if (!response.ok) {
-      throw new Error(`AI service error: ${response.statusText}`);
+      // Only add Authorization header if API key is provided
+      if (apiKey) {
+        headers['Authorization'] = `Bearer ${apiKey}`;
+      }
+
+      // In production, this would make an HTTP request to the AI service
+      const response = await fetch(`${aiServiceUrl}/analyze`, {
+        method: 'POST',
+        headers,
+        body: JSON.stringify({
+          sessionId,
+          data: sessionData,
+        }),
+        signal: controller.signal,
+      });
+
+      clearTimeout(timeoutId);
+
+      if (!response.ok) {
+        throw new Error(`AI service error: ${response.statusText}`);
+      }
+
+      const feedback = await response.json();
+      return feedback as IAIFeedback;
+    } catch (error: any) {
+      clearTimeout(timeoutId);
+      if (error.name === 'AbortError') {
+        console.error('AI service request timed out');
+      }
+      throw error;
     }
-
-    const feedback = await response.json();
-    return feedback as IAIFeedback;
   } catch (error) {
     console.error('Error getting AI feedback:', error);
     return generateBasicFeedback(sessionId, sessionData);
@@ -49,7 +70,7 @@ const generateBasicFeedback = (
   sessionId: string,
   sessionData: any
 ): IAIFeedback => {
-  const { steps, distance, avgPace, duration, calories } = sessionData;
+  const { steps, distance, avgPace, duration } = sessionData;
 
   const suggestions: string[] = [];
   const strengths: string[] = [];

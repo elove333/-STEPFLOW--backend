@@ -6,6 +6,14 @@ export const getAnalytics = async (req: AuthRequest, res: Response) => {
   try {
     const { period = 'weekly', startDate, endDate } = req.query;
 
+    // Validate period parameter
+    const validPeriods = ['daily', 'weekly', 'monthly'];
+    if (period && !validPeriods.includes(period as string)) {
+      return res.status(400).json({
+        error: `period must be one of: ${validPeriods.join(', ')}`
+      });
+    }
+
     const query: any = { userId: req.userId };
 
     // Calculate date range based on period
@@ -65,7 +73,10 @@ export const getAnalytics = async (req: AuthRequest, res: Response) => {
 
     res.status(200).json({ analytics });
   } catch (error: any) {
-    res.status(500).json({ error: error.message });
+    const message = process.env.NODE_ENV === 'production' 
+      ? 'An error occurred while retrieving analytics'
+      : error.message;
+    res.status(500).json({ error: message });
   }
 };
 
@@ -73,8 +84,24 @@ export const getProgress = async (req: AuthRequest, res: Response) => {
   try {
     const { days = 30 } = req.query;
 
+    // Validate and normalize "days" query parameter
+    const MAX_DAYS = 365;
+    const rawDays = Array.isArray(days) ? days[0] : days;
+    const numericDays = Number(rawDays);
+
+    if (
+      !Number.isFinite(numericDays) ||
+      !Number.isInteger(numericDays) ||
+      numericDays <= 0 ||
+      numericDays > MAX_DAYS
+    ) {
+      return res.status(400).json({
+        error: `"days" must be a positive integer not greater than ${MAX_DAYS}`,
+      });
+    }
+
     const startDate = new Date();
-    startDate.setDate(startDate.getDate() - Number(days));
+    startDate.setDate(startDate.getDate() - numericDays);
 
     const sessions = await Session.find({
       userId: req.userId,
@@ -110,43 +137,65 @@ export const getProgress = async (req: AuthRequest, res: Response) => {
 
     res.status(200).json({ progress });
   } catch (error: any) {
-    res.status(500).json({ error: error.message });
+    const message = process.env.NODE_ENV === 'production' 
+      ? 'An error occurred while retrieving progress data'
+      : error.message;
+    res.status(500).json({ error: message });
   }
 };
 
 export const getStats = async (req: AuthRequest, res: Response) => {
   try {
-    // Get all-time stats
-    const allSessions = await Session.find({ userId: req.userId });
+    // Use aggregation pipeline for better performance
+    const result = await Session.aggregate([
+      { $match: { userId: req.userId } },
+      {
+        $group: {
+          _id: null,
+          totalSessions: { $sum: 1 },
+          totalSteps: { $sum: '$steps' },
+          totalDistance: { $sum: '$distance' },
+          totalDuration: { $sum: '$duration' },
+          totalCalories: { $sum: '$calories' },
+          avgPace: { $avg: '$avgPace' },
+        },
+      },
+    ]);
 
-    const stats = {
-      totalSessions: allSessions.length,
-      totalSteps: 0,
-      totalDistance: 0,
-      totalDuration: 0,
-      totalCalories: 0,
-      avgStepsPerSession: 0,
-      avgDistancePerSession: 0,
-      avgDurationPerSession: 0,
-      avgPace: 0,
-    };
-
-    allSessions.forEach((session) => {
-      stats.totalSteps += session.steps;
-      stats.totalDistance += session.distance;
-      stats.totalDuration += session.duration;
-      stats.totalCalories += session.calories;
-    });
-
-    if (allSessions.length > 0) {
-      stats.avgStepsPerSession = stats.totalSteps / allSessions.length;
-      stats.avgDistancePerSession = stats.totalDistance / allSessions.length;
-      stats.avgDurationPerSession = stats.totalDuration / allSessions.length;
-      stats.avgPace = allSessions.reduce((sum, s) => sum + s.avgPace, 0) / allSessions.length;
+    if (result.length === 0) {
+      return res.status(200).json({
+        stats: {
+          totalSessions: 0,
+          totalSteps: 0,
+          totalDistance: 0,
+          totalDuration: 0,
+          totalCalories: 0,
+          avgStepsPerSession: 0,
+          avgDistancePerSession: 0,
+          avgDurationPerSession: 0,
+          avgPace: 0,
+        },
+      });
     }
+
+    const aggregated = result[0];
+    const stats = {
+      totalSessions: aggregated.totalSessions,
+      totalSteps: aggregated.totalSteps,
+      totalDistance: aggregated.totalDistance,
+      totalDuration: aggregated.totalDuration,
+      totalCalories: aggregated.totalCalories,
+      avgStepsPerSession: aggregated.totalSteps / aggregated.totalSessions,
+      avgDistancePerSession: aggregated.totalDistance / aggregated.totalSessions,
+      avgDurationPerSession: aggregated.totalDuration / aggregated.totalSessions,
+      avgPace: aggregated.avgPace,
+    };
 
     res.status(200).json({ stats });
   } catch (error: any) {
-    res.status(500).json({ error: error.message });
+    const message = process.env.NODE_ENV === 'production' 
+      ? 'An error occurred while retrieving statistics'
+      : error.message;
+    res.status(500).json({ error: message });
   }
 };

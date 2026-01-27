@@ -43,9 +43,12 @@ export const processMetrics = (input: MetricsInput): MetricsOutput => {
     avgCadence = totalCadence / movementData.length;
     avgSpeed = totalSpeed / movementData.length;
   } else {
-    // Fallback: calculate from total values
+    // Fallback: calculate from total values.
+    // NOTE: This uses the total session duration (including any breaks),
+    //       so avgCadence here is "overall session steps per minute" and
+    //       may underestimate true active cadence if the user pauses.
     avgSpeed = distance / duration; // meters per second
-    avgCadence = steps / durationMin; // steps per minute
+    avgCadence = steps / durationMin; // steps per minute (overall session)
   }
 
   return {
@@ -55,33 +58,4 @@ export const processMetrics = (input: MetricsInput): MetricsOutput => {
     avgCadence,
     avgSpeed,
   };
-};
-
-export const calculateCalories = (steps: number, distance: number, duration: number): number => {
-  // More sophisticated calorie calculation
-  // Based on steps, distance, and duration
-  const baseCalories = steps * 0.04;
-  const distanceFactor = (distance / 1000) * 50; // 50 calories per km
-  const durationFactor = (duration / 3600) * 100; // 100 calories per hour
-  
-  return Math.round((baseCalories + distanceFactor + durationFactor) / 3);
-};
-
-export const analyzePerformance = (avgPace: number, avgCadence: number): string => {
-  let performance = 'Good';
-
-  // Ideal pace: 5-7 minutes per km
-  // Ideal cadence: 160-180 steps per minute
-
-  if (avgPace < 5 || avgPace > 8) {
-    performance = 'Needs Improvement';
-  } else if (avgPace >= 5 && avgPace <= 6) {
-    performance = 'Excellent';
-  }
-
-  if (avgCadence < 140 || avgCadence > 200) {
-    performance = performance === 'Excellent' ? 'Good' : 'Needs Improvement';
-  }
-
-  return performance;
 };

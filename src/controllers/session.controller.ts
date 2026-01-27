@@ -15,10 +15,26 @@ export const createSession = async (req: AuthRequest, res: Response) => {
       });
     }
 
+    // Validate numeric ranges for steps and distance
+    if (typeof steps !== 'number' || typeof distance !== 'number' || steps < 0 || distance < 0) {
+      return res.status(400).json({
+        error: 'steps and distance must be numbers greater than or equal to 0'
+      });
+    }
+
+    // Validate startTime and endTime relationship
+    const start = new Date(startTime);
+    const end = new Date(endTime);
+    if (end <= start) {
+      return res.status(400).json({
+        error: 'endTime must be after startTime'
+      });
+    }
+
     // Process metrics
     const metrics = processMetrics({
-      startTime: new Date(startTime),
-      endTime: new Date(endTime),
+      startTime: start,
+      endTime: end,
       steps,
       distance,
       movementData: movementData || [],
@@ -27,8 +43,8 @@ export const createSession = async (req: AuthRequest, res: Response) => {
     // Create session
     const session = new Session({
       userId: req.userId,
-      startTime: new Date(startTime),
-      endTime: new Date(endTime),
+      startTime: start,
+      endTime: end,
       duration: metrics.duration,
       steps,
       distance,
@@ -52,7 +68,10 @@ export const createSession = async (req: AuthRequest, res: Response) => {
       },
     });
   } catch (error: any) {
-    res.status(500).json({ error: error.message });
+    const message = process.env.NODE_ENV === 'production' 
+      ? 'An error occurred while creating the session'
+      : error.message;
+    res.status(500).json({ error: message });
   }
 };
 
@@ -62,16 +81,40 @@ export const getSessions = async (req: AuthRequest, res: Response) => {
 
     const query: any = { userId: req.userId };
 
+    // Validate and normalize limit and skip parameters
+    const parsedLimit = Number(limit);
+    const parsedSkip = Number(skip);
+    
+    if (!Number.isFinite(parsedLimit) || !Number.isInteger(parsedLimit) || parsedLimit <= 0 || parsedLimit > 100) {
+      return res.status(400).json({
+        error: 'limit must be a positive integer not greater than 100'
+      });
+    }
+    
+    if (!Number.isFinite(parsedSkip) || !Number.isInteger(parsedSkip) || parsedSkip < 0) {
+      return res.status(400).json({
+        error: 'skip must be a non-negative integer'
+      });
+    }
+
     if (startDate || endDate) {
+      let start = startDate ? new Date(startDate as string) : undefined;
+      let end = endDate ? new Date(endDate as string) : undefined;
+
+      // Swap dates if in wrong order
+      if (start && end && start > end) {
+        [start, end] = [end, start];
+      }
+
       query.startTime = {};
-      if (startDate) query.startTime.$gte = new Date(startDate as string);
-      if (endDate) query.startTime.$lte = new Date(endDate as string);
+      if (start) query.startTime.$gte = start;
+      if (end) query.startTime.$lte = end;
     }
 
     const sessions = await Session.find(query)
       .sort({ startTime: -1 })
-      .limit(Number(limit))
-      .skip(Number(skip));
+      .limit(parsedLimit)
+      .skip(parsedSkip);
 
     const total = await Session.countDocuments(query);
 
@@ -79,12 +122,15 @@ export const getSessions = async (req: AuthRequest, res: Response) => {
       sessions,
       pagination: {
         total,
-        limit: Number(limit),
-        skip: Number(skip),
+        limit: parsedLimit,
+        skip: parsedSkip,
       },
     });
   } catch (error: any) {
-    res.status(500).json({ error: error.message });
+    const message = process.env.NODE_ENV === 'production' 
+      ? 'An error occurred while retrieving sessions'
+      : error.message;
+    res.status(500).json({ error: message });
   }
 };
 
@@ -100,7 +146,10 @@ export const getSessionById = async (req: AuthRequest, res: Response) => {
 
     res.status(200).json({ session });
   } catch (error: any) {
-    res.status(500).json({ error: error.message });
+    const message = process.env.NODE_ENV === 'production' 
+      ? 'An error occurred while retrieving the session'
+      : error.message;
+    res.status(500).json({ error: message });
   }
 };
 
@@ -119,6 +168,9 @@ export const deleteSession = async (req: AuthRequest, res: Response) => {
 
     res.status(200).json({ message: 'Session deleted successfully' });
   } catch (error: any) {
-    res.status(500).json({ error: error.message });
+    const message = process.env.NODE_ENV === 'production' 
+      ? 'An error occurred while deleting the session'
+      : error.message;
+    res.status(500).json({ error: message });
   }
 };
