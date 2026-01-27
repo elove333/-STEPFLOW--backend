@@ -24,44 +24,40 @@ export const getAIFeedback = async (
     const controller = new AbortController();
     const timeoutId = setTimeout(() => controller.abort(), 30000); // 30 second timeout
 
-    try {
-      const headers: Record<string, string> = {
-        'Content-Type': 'application/json',
-      };
+    const headers: Record<string, string> = {
+      'Content-Type': 'application/json',
+    };
 
-      // Only add Authorization header if API key is provided
-      if (apiKey) {
-        headers['Authorization'] = `Bearer ${apiKey}`;
-      }
-
-      // In production, this would make an HTTP request to the AI service
-      const response = await fetch(`${aiServiceUrl}/analyze`, {
-        method: 'POST',
-        headers,
-        body: JSON.stringify({
-          sessionId,
-          data: sessionData,
-        }),
-        signal: controller.signal,
-      });
-
-      clearTimeout(timeoutId);
-
-      if (!response.ok) {
-        throw new Error(`AI service error: ${response.statusText}`);
-      }
-
-      const feedback = await response.json();
-      return feedback as IAIFeedback;
-    } catch (error: any) {
-      clearTimeout(timeoutId);
-      if (error.name === 'AbortError') {
-        console.error('AI service request timed out');
-      }
-      throw error;
+    // Only add Authorization header if API key is provided
+    if (apiKey) {
+      headers['Authorization'] = `Bearer ${apiKey}`;
     }
-  } catch (error) {
-    console.error('Error getting AI feedback:', error);
+
+    // In production, this would make an HTTP request to the AI service
+    const response = await fetch(`${aiServiceUrl}/analyze`, {
+      method: 'POST',
+      headers,
+      body: JSON.stringify({
+        sessionId,
+        data: sessionData,
+      }),
+      signal: controller.signal,
+    });
+
+    clearTimeout(timeoutId);
+
+    if (!response.ok) {
+      throw new Error(`AI service error: ${response.statusText}`);
+    }
+
+    const feedback = await response.json();
+    return feedback as IAIFeedback;
+  } catch (error: any) {
+    if (error.name === 'AbortError') {
+      console.error('AI service request timed out');
+    } else {
+      console.error('Error getting AI feedback:', error);
+    }
     return generateBasicFeedback(sessionId, sessionData);
   }
 };
