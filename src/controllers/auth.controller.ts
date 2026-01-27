@@ -23,6 +23,7 @@ export const register = async (req: Request, res: Response) => {
     await user.save();
 
     // Generate token
+    // Generate token
     const jwtSecret = process.env.JWT_SECRET;
     if (!jwtSecret) {
       return res.status(500).json({ error: 'Server configuration error' });
@@ -40,7 +41,8 @@ export const register = async (req: Request, res: Response) => {
       },
     });
   } catch (error: any) {
-    res.status(500).json({ error: error.message });
+    console.error('Registration error:', error);
+    res.status(500).json({ error: 'An error occurred during registration' });
   }
 };
 
@@ -83,7 +85,8 @@ export const login = async (req: Request, res: Response) => {
       },
     });
   } catch (error: any) {
-    res.status(500).json({ error: error.message });
+    console.error('Login error:', error);
+    res.status(500).json({ error: 'An error occurred during login' });
   }
 };
 
@@ -96,6 +99,7 @@ export const getProfile = async (req: AuthRequest, res: Response) => {
 
     res.status(200).json({ user });
   } catch (error: any) {
-    res.status(500).json({ error: error.message });
+    console.error('Get profile error:', error);
+    res.status(500).json({ error: 'An error occurred while fetching profile' });
   }
 };
