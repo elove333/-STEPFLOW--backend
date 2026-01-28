@@ -266,6 +266,27 @@ describe('Folder API Tests', () => {
       expect(res.body.error).toBe('Cannot move a folder into itself');
     });
 
+    it('should return 400 when trying to move folder into its direct child', async () => {
+      // Create hierarchy: parent -> child
+      const parent = await Folder.create({ 
+        name: 'Parent', 
+        userId: testUserId 
+      });
+      const child = await Folder.create({ 
+        name: 'Child', 
+        userId: testUserId,
+        parentFolder: parent._id
+      });
+
+      // Try to move parent into child (its direct descendant)
+      const res = await request(app)
+        .put(`/api/folders/${parent._id}`)
+        .send({ parentFolder: child._id.toString() });
+
+      expect(res.statusCode).toBe(400);
+      expect(res.body.error).toBe('Cannot move a folder into its own descendant');
+    });
+
     it('should return 400 when trying to move folder into its descendant', async () => {
       // Create hierarchy: grandparent -> parent -> child
       const grandparent = await Folder.create({ 

@@ -1,6 +1,9 @@
 const Folder = require('../models/Folder');
 
 // Helper function to check if targetId is a descendant of folderId
+// Note: This recursive approach performs one DB query per level.
+// For typical folder hierarchies (3-5 levels), this is acceptable.
+// For very deep hierarchies, consider using MongoDB's $graphLookup aggregation.
 const isDescendant = async (folderId, targetId) => {
   if (!targetId) return false;
   
