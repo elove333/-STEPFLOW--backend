@@ -276,7 +276,8 @@ When rate limit is exceeded, the API returns a 429 status with retry information
 ### Folder Hierarchy
 - Create nested folders with parent-child relationships
 - Query folders by parent to get folder structure
-- Prevent circular references (folder cannot be its own parent)
+- **Circular Reference Prevention**: Enhanced protection prevents folders from being moved into themselves or any of their descendants (prevents circular loops in the hierarchy)
+- Subfolders must be deleted or moved before deleting a parent folder
 
 ### Validation
 - Folder names are required and limited to 100 characters
