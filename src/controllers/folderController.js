@@ -1,5 +1,17 @@
 const Folder = require('../models/Folder');
 
+// Helper function to check if targetId is a descendant of folderId
+const isDescendant = async (folderId, targetId) => {
+  if (!targetId) return false;
+  
+  const target = await Folder.findById(targetId);
+  if (!target) return false;
+  if (target._id.toString() === folderId.toString()) return true;
+  if (!target.parentFolder) return false;
+  
+  return isDescendant(folderId, target.parentFolder);
+};
+
 // @desc    Get all folders for a user
 // @route   GET /api/folders
 // @access  Private (should be protected with auth middleware)
@@ -162,6 +174,17 @@ const updateFolder = async (req, res) => {
         success: false,
         error: 'Cannot move a folder into itself' 
       });
+    }
+
+    // Check if parentFolder is a descendant of the current folder
+    if (parentFolder) {
+      const isCircular = await isDescendant(req.params.id, parentFolder);
+      if (isCircular) {
+        return res.status(400).json({ 
+          success: false,
+          error: 'Cannot move a folder into its own descendant' 
+        });
+      }
     }
 
     // Check for duplicate name if name is being changed
